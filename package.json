@@ -1,0 +1,32 @@
+{
+  "name": "smartthingsapps",
+  "version": "1.0.0",
+  "description": "Recommendation and Play music when you come from work",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon app"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ech97/alwaysWithMusic.git"
+  },
+  "keywords": [
+    "music",
+    "recommendation"
+  ],
+  "author": "chanhyun.lee",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ech97/alwaysWithMusic/issues"
+  },
+  "homepage": "https://github.com/ech97/alwaysWithMusic#readme",
+  "dependencies": {
+    "@smartthings/smartapp": "^4.2.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "https": "^1.0.0",
+    "morgan": "^1.10.0",
+    "nodemon": "^3.0.1",
+    "openai": "^3.3.0"
+  }
+}

@@ -6,7 +6,8 @@ const morgan = require('morgan');
 const fs = require('fs');
 
 const youtubedl = require('youtube-dl-exec');
-const player = require('play-sound')(opts = {});
+//const player = require('play-sound')(opts = {});
+const Sound = require('aplay');
 
 const { Configuration, OpenAIApi } = require('openai');
 
@@ -63,10 +64,14 @@ const runAPI = async (prompt) => {
     });
 	console.log('download ended', output);
 
-    player.play('./home/b.mp3', (err) => {
-        if (err && !err.killed) throw err;
-    });
-
+    //player.play('./home/b.mp3', (err) => {
+    //    if (err && !err.killed) throw err;
+    //});
+	const music = new Sound();
+	music.play('./home/b.mp3');
+	music.on('complete', function () {
+			console.log('Donw with playback!');
+	});
 }
 
 // runAPI("please give me the hot music youtube url");

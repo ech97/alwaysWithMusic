@@ -4,9 +4,17 @@ const SmartApp = require('@smartthings/smartapp');
 const dotenv = require('dotenv').config();
 const morgan = require('morgan');
 const fs = require('fs');
+const youtubedl = require('youtube-dl-exec');
+const player = require('play-sound')(opts = {});
 const { Configuration, OpenAIApi } = require('openai');
 
 const app = express();
+
+const credentials = {
+	key: fs.readFileSync(process.env.PRIVATE_KEY),
+	cert: fs.readFileSync(process.env.CERT_KEY),
+	ca: fs.readFileSync(process.env.CA_KEY),
+};
 
 const configuration = new Configuration({
     organization: process.env.OPENAI_ORGANIZATION,
@@ -29,19 +37,13 @@ const runAPI = async (prompt) => {
         max_tokens: 100,
         temperature: 0.6,
       });
-    res.send('- completion:\n' + response.data.choices[0].text);
-    res.send('\n- total tokens: ' + response.data.usage.total_tokens);
-    res.send('*- completion ended...');
+    console.log('- completion:\n' + response.data.choices[0].text);
+    console.log('\n- total tokens: ' + response.data.usage.total_tokens);
+    console.log('*- completion ended...');
     // getModelLists();
 }
 
 // runAPI("please give me the hot music youtube url");
-
-
-// const options = {
-//     key: fs.readFileSync('./keys/private.pem', "utf-8"),
-//     cert: fs.readFileSync('./keys/cert.pem', "utf-8")
-// };
 
 app.use(morgan('dev'));
 app.use(express.json());
@@ -76,6 +78,16 @@ const smartapp = new SmartApp()
 
 app.get('/', (req, res) => {
     console.log('접속 요청 + 1');
+	
+	youtubedl('https://youtu.be/gSEBpghCnCs', {
+		format: 'ba',
+		output: './music.mp3',
+	})
+		.then(output => console.log(output));
+	
+	const audio = player.play('./music.mp3', (err) => {
+		if (err && !err.killed) throw err;
+	});
     runAPI("please give me the hot music youtube url");
     res.end('ㅎㅇㅎㅇ');
 });
@@ -90,6 +102,6 @@ app.post('/', function (req, res, next) {
     smartapp.handleHttpCallback(req, res);
 });
 
-
-//const server = https.createServer(options, app);
-app.listen(process.env.PORT, () => console.log(`Server is up and running on port ${process.env.PORT}`));
+const server = https.createServer(credentials, app).listen(process.env.PORT, () => {
+		console.log(`Server is up and running on port ${process.env.PORT}`)
+});

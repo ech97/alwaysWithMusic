@@ -27,6 +27,8 @@
     "https": "^1.0.0",
     "morgan": "^1.10.0",
     "nodemon": "^3.0.1",
-    "openai": "^3.3.0"
+    "openai": "^3.3.0",
+    "play-sound": "^1.1.5",
+    "youtube-dl-exec": "^2.4.6"
   }
 }

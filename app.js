@@ -4,8 +4,10 @@ const SmartApp = require('@smartthings/smartapp');
 const dotenv = require('dotenv').config();
 const morgan = require('morgan');
 const fs = require('fs');
+
 const youtubedl = require('youtube-dl-exec');
 const player = require('play-sound')(opts = {});
+
 const { Configuration, OpenAIApi } = require('openai');
 
 const app = express();
@@ -30,17 +32,31 @@ const getModelLists = async () => {
         console.log(modelIdx + ':' + models[i].id);
     }
 }
+
+const regex = new RegExp("\bhttps?://[^,\s()<>]+(?:\([\w\d]+\)|([^,[:punct:]\s]|/))");
+
 const runAPI = async (prompt) => {
     const response = await openai.createCompletion({
         model: "text-davinci-003",
         prompt: prompt,
         max_tokens: 100,
         temperature: 0.6,
-      });
-    console.log('- completion:\n' + response.data.choices[0].text);
-    console.log('\n- total tokens: ' + response.data.usage.total_tokens);
-    console.log('*- completion ended...');
-    // getModelLists();
+    });
+
+    // response.data.choices[0].text를 파싱해야함
+
+    console.log('original text: ', response.data.choices[0].text);
+    console.log('parsing url: ', response.data.choices[0].text.match(regex)[0]);
+    youtubedl.exec('https://youtu.be/gSEBpghCnCs', {
+    format: 'ba',
+    quiet: true,
+    output: '-'
+    })
+        .stdout.pipe(fs.createWriteStream('./home/b.mp3'));
+
+    player.play('./music.mp3', (err) => {
+        if (err && !err.killed) throw err;
+    });
 }
 
 // runAPI("please give me the hot music youtube url");
@@ -79,22 +95,9 @@ const smartapp = new SmartApp()
 app.get('/', (req, res) => {
     console.log('접속 요청 + 1');
 	
-	youtubedl('https://youtu.be/gSEBpghCnCs', {
-		format: 'ba',
-		output: './music.mp3',
-	})
-		.then(output => console.log(output));
-	
-	const audio = player.play('./music.mp3', (err) => {
-		if (err && !err.killed) throw err;
-	});
     runAPI("please give me the hot music youtube url");
+	
     res.end('ㅎㅇㅎㅇ');
-});
-
-app.get('/oauth', (req, res) => {
-	console.log(JSON.stringify(req.query))
-	res.send("OK")
 });
 
 /* Handle POST requests */

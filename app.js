@@ -33,7 +33,16 @@ const getModelLists = async () => {
     }
 }
 
-const regex = new RegExp("\bhttps?://[^,\s()<>]+(?:\([\w\d]+\)|([^,[:punct:]\s]|/))");
+function parseUrlInBracket(input) {
+	const regex = /\[(https?:\/\/[^\]]+)\]/g;
+	const matches = input.match(regex);
+
+	if (matches) {
+		const urlInBracket = matches[0].slice(1, -1);
+		return urlInBracket;
+	}
+	return "https://youtu.be/gyTpRWXXyfg";
+}
 
 const runAPI = async (prompt) => {
     const response = await openai.createCompletion({
@@ -44,19 +53,20 @@ const runAPI = async (prompt) => {
     });
 
     // response.data.choices[0].text를 파싱해야함
-
+	const urlInBracket = parseUrlInBracket(response.data.choices[0].text);
     console.log('original text: ', response.data.choices[0].text);
-    console.log('parsing url: ', response.data.choices[0].text.match(regex)[0]);
-    youtubedl.exec('https://youtu.be/gSEBpghCnCs', {
-    format: 'ba',
-    quiet: true,
-    output: '-'
-    })
-        .stdout.pipe(fs.createWriteStream('./home/b.mp3'));
+    console.log('parsing url: ', urlInBracket);
+    const output = await youtubedl(urlInBracket, {
+	    format: 'ba',
+	    quiet: true,
+	    output: './home/b.mp3'
+    });
+	console.log('download ended', output);
 
-    player.play('./music.mp3', (err) => {
+    player.play('./home/b.mp3', (err) => {
         if (err && !err.killed) throw err;
     });
+
 }
 
 // runAPI("please give me the hot music youtube url");
@@ -95,8 +105,8 @@ const smartapp = new SmartApp()
 app.get('/', (req, res) => {
     console.log('접속 요청 + 1');
 	
-    runAPI("please give me the hot music youtube url");
-	
+    //runAPI("please give me the hot music youtube url");
+	runAPI("please give me the popular music url from youtube in square brackets");
     res.end('ㅎㅇㅎㅇ');
 });
 

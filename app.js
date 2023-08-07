@@ -37,6 +37,7 @@ const getModelLists = async () => {
     }
 }
 
+var mpvPlayer;
 const runAPI = async (prompt) => {
 
     const response = await openai.createCompletion({
@@ -66,7 +67,7 @@ const runAPI = async (prompt) => {
         console.log('not available youtube link');
 	}
 
-    var mpvPlayer = playMusic(playFilePath);
+    mpvPlayer = playMusic(playFilePath);
 }
 
 function controlMusic(mode='stop', mpvPlayer) {

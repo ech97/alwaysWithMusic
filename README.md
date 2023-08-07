@@ -8,6 +8,9 @@
 - whenever we must can stop music. so we need to add stop eventlistener (ref. node-mpv from npm-page)
 - we add volume slide (node-mpv have properties (control sound while play music)
 - etc. (exception)
+
+## Need to fix
+- only we can play music when connect with ssh -X || when execute mpv with DISPLAY=:0 mpv [audio.mp3]
 ## How it works
 ### 1. Event Listen from Smart Things Cloud
 // 온도, 습도 가져오고, 버튼 누르거나 도어센서 인식했을때 실행도ㅁ게 할거임

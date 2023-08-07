@@ -4,7 +4,7 @@ const SmartApp = require('@smartthings/smartapp');
 const dotenv = require('dotenv').config();
 const morgan = require('morgan');
 const fs = require('fs');
-
+const playMusic = require('./play.js');
 const youtubedl = require('youtube-dl-exec');
 const mpv = require('node-mpv');
 
@@ -73,10 +73,11 @@ const runAPI = async (prompt) => {
 		const playFilePath = process.env.DEFAULT_PLAY_FILE_PATH;
 		console.error(err);
 	}
-
+    /*
 	const mpvPlayer = new mpv({
 		"audio_only": true,
 	});
+	// mpvPlayer.on(default status) {
 	try {
 		console.log('play music');
 		mpvPlayer.load(process.env.PLAY_FILE_PATH);
@@ -88,6 +89,9 @@ const runAPI = async (prompt) => {
 	mpvPlayer.on('stopped', function() {
 		console.log('done with playback');
 	});
+	// }
+    */
+    playMusic();
 }
 
 // runAPI("please give me the hot music youtube url");

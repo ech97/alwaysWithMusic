@@ -70,7 +70,7 @@ const runAPI = async (prompt) => {
     mpvPlayer = playMusic(playFilePath);
 }
 
-function controlMusic(mode='stop', mpvPlayer) {
+function controlMusic(mode, volume) {
     if (mode === 'stop') {
         try {
             mpvPlayer.stop();
@@ -78,8 +78,15 @@ function controlMusic(mode='stop', mpvPlayer) {
             console.error(err);
         }
     }
-
+    else if (mode === 'volume') {
+        try {
+            mpvPlayer.volume(volume);
+        } catch (err) {
+            console.error(err);
+        }
+    }
 }
+
 /* Define the SmartApp */
 const smartapp = new SmartApp()
     .enableEventLogging(0) // logs all lifecycle event requests and responses as pretty-printed JSON. Omit in production
@@ -91,30 +98,41 @@ const smartapp = new SmartApp()
                 .permissions('rx')
                 .multiple(true);
         });
+    
+        page.section('controlVolume', section => {
+            section.numberSetting('volume')
+                .min(0)
+                .max(100)
+                .step(1)
+                .defaultValue(40)
+                .style('SLIDER')
+                .submitOnChange(true)
+        });
     })
     // Called for both INSTALLED and UPDATED lifecycle events if there is no separate installed() handler
     .updated(async (context, updateData) => {
         await context.api.subscriptions.delete() // clear any existing configuration
         //await context.api.subscriptions.subscribeToDevices(context.config.contactSensor, 'contactSensor', 'contact', 'myDeviceEventHandler');
-        await context.api.subscriptions.subscribeToDevices(context.config.lights, 'switch', 'switch', 'myDeviceEventHandler');
+        await context.api.subscriptions.subscribeToDevices(context.config.lights, 'switch', 'switch', 'virtualSwitchEventHandler');
     })
-    .subscribedEventHandler('myDeviceEventHandler', async (context, event) => {
+    .subscribedEventHandler('virtualSwitchEventHandler', async (context, event) => {
         const value = event.value === 'on' ? 'on' : 'off';
         if (event.value === 'on') {
             await runAPI();
+            console.log('@@@@@@@@ volume:', context.configNumberValue('volume'));
+            controlMusic('volume', context.configNumberValue('volume'));
             //await context.api.devices.sendCommands(context.config.lights, 'switch', 'off');
         }
         if (event.value === 'off') {
-            controlMusic('stop', mpvPlayer);
+            console.log('@@@@@@@@ volume:', context.configNumberValue('volume'));
+            controlMusic('stop', 0);
         }
     });
 
 app.get('/', (req, res) => {
     console.log('접속 요청 + 1');
-	
     //runAPI("please give me the hot music youtube url");
 	//runAPI("please give me the popular music url from youtube in square brackets");
-    res.end('ㅎㅇㅎㅇ');
 });
 
 /* Handle POST requests */

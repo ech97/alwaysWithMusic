@@ -9,6 +9,7 @@
 - we add volume slide (node-mpv have properties (control sound while play music)
 - etc. (exception)
 
+- use youtube-dl skip intro feature
 ## Need to fix
 - only we can play music when connect with ssh -X || when execute mpv with DISPLAY=:0 mpv [audio.mp3]
 ## How it works

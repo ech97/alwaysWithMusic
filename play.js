@@ -1,12 +1,23 @@
 const mpv = require('node-mpv');
 
-function playMusic() {
+function playMusic(playFilePath) {
     const mpvPlayer = new mpv({
-		'verbose': true,
+		//'verbose': true,
         'audio_only': true,
     });
-    mpvPlayer.load(process.env.DEFAULT_PLAY_FILE_PATH);
-    mpvPlayer.volume(50);
+
+    try {
+        mpvPlayer.load(playFilePath);
+        mpvPlayer.volume(40);
+        mpvPlayer.on('stopped', () => {
+            console.log('done with playback');
+        });
+        // add eventlistener to pause music while playing
+    } catch (err) {
+        console.error(err);
+    }
+
+    return mpvPlayer;
 }
 
 module.exports = playMusic;

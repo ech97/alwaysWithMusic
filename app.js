@@ -4,13 +4,17 @@ const SmartApp = require('@smartthings/smartapp');
 const dotenv = require('dotenv').config();
 const morgan = require('morgan');
 const fs = require('fs');
-const playMusic = require('./play.js');
+const playMusic = require('./play');
+const parseUrlInBracket = require('./parseUrl');
 const youtubedl = require('youtube-dl-exec');
-const mpv = require('node-mpv');
 
 const { Configuration, OpenAIApi } = require('openai');
 
 const app = express();
+
+app.use(morgan('dev'));
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
 const credentials = {
 	key: fs.readFileSync(process.env.PRIVATE_KEY),
@@ -33,19 +37,6 @@ const getModelLists = async () => {
     }
 }
 
-function parseUrlInBracket(input) {
-	const regex = /\[(https?:\/\/[^\]]+)\]/g;
-	const matches = input.match(regex);
-
-	let urlInBracket;
-	if (matches) {
-		urlInBracket = matches[0].slice(1, -1);
-		return urlInBracket;
-	}
-	urlInBracket = "https://youtu.be/gyTpRWXXyfg";
-	return urlInBracket;
-}
-
 const runAPI = async (prompt) => {
 
     const response = await openai.createCompletion({
@@ -55,60 +46,43 @@ const runAPI = async (prompt) => {
         temperature: 0.6,
     });
 
-    // response.data.choices[0].text를 파싱해야함
 	const urlInBracket = parseUrlInBracket(response.data.choices[0].text);
     console.log('original text:', response.data.choices[0].text);
     console.log('parsing url:', urlInBracket);
 
+    let playFilePath = process.env.DEFAULT_PLAY_FILE_PATH;
 	try {
+        // download over 10s throw error
 	    const output = await youtubedl(urlInBracket, {
 		    format: 'ba',
 			'force-overwrites': true,
 		    //quiet: false,
 		    output: process.env.PLAY_FILE_PATH,
 	    });
-		const playFilePath = process.env.PLAY_FILE_PATH;
+		playFilePath = process.env.PLAY_FILE_PATH;
 		console.log('download ended', output);
 	} catch (err) {
-		const playFilePath = process.env.DEFAULT_PLAY_FILE_PATH;
-		console.error(err);
+		playFilePath = process.env.DEFAULT_PLAY_FILE_PATH;
+        console.log('not available youtube link');
 	}
-    /*
-	const mpvPlayer = new mpv({
-		"audio_only": true,
-	});
-	// mpvPlayer.on(default status) {
-	try {
-		console.log('play music');
-		mpvPlayer.load(process.env.PLAY_FILE_PATH);
-	} catch (err) {
-		mpvPlayer.load(process.env.DEFAULT_PLAY_FILE_PATH);
-		console.error(err);
-	}
-	mpvPlayer.volume(30);
-	mpvPlayer.on('stopped', function() {
-		console.log('done with playback');
-	});
-	// }
-    */
-    playMusic();
+
+    var mpvPlayer = playMusic(playFilePath);
 }
 
-// runAPI("please give me the hot music youtube url");
+function controlMusic(mode='stop', mpvPlayer) {
+    if (mode === 'stop') {
+        try {
+            mpvPlayer.stop();
+        } catch (err) {
+            console.error(err);
+        }
+    }
 
-app.use(morgan('dev'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+}
 /* Define the SmartApp */
 const smartapp = new SmartApp()
-    .enableEventLogging(2) // logs all lifecycle event requests and responses as pretty-printed JSON. Omit in production
-    .appId('5907d734-cfd4-44c5-9f73-193a0f96d654')
+    .enableEventLogging(0) // logs all lifecycle event requests and responses as pretty-printed JSON. Omit in production
     .page('mainPage', (context, page, configData) => {
-        page.section('sensors', section => {
-            section
-                .deviceSetting('contactSensor')
-                .capabilities(['contactSensor'])
-        });
         page.section('lights', section => {
             section
                 .deviceSetting('lights')
@@ -120,18 +94,25 @@ const smartapp = new SmartApp()
     // Called for both INSTALLED and UPDATED lifecycle events if there is no separate installed() handler
     .updated(async (context, updateData) => {
         await context.api.subscriptions.delete() // clear any existing configuration
-        await context.api.subscriptions.subscribeToDevices(context.config.contactSensor, 'contactSensor', 'contact', 'myDeviceEventHandler');
+        //await context.api.subscriptions.subscribeToDevices(context.config.contactSensor, 'contactSensor', 'contact', 'myDeviceEventHandler');
+        await context.api.subscriptions.subscribeToDevices(context.config.lights, 'switch', 'switch', 'myDeviceEventHandler');
     })
     .subscribedEventHandler('myDeviceEventHandler', async (context, event) => {
-        const value = event.value === 'open' ? 'on' : 'off';
-        await context.api.devices.sendCommands(context.config.lights, 'switch', value);
+        const value = event.value === 'on' ? 'on' : 'off';
+        if (event.value === 'on') {
+            await runAPI();
+            //await context.api.devices.sendCommands(context.config.lights, 'switch', 'off');
+        }
+        if (event.value === 'off') {
+            controlMusic('stop', mpvPlayer);
+        }
     });
 
 app.get('/', (req, res) => {
     console.log('접속 요청 + 1');
 	
     //runAPI("please give me the hot music youtube url");
-	runAPI("please give me the popular music url from youtube in square brackets");
+	//runAPI("please give me the popular music url from youtube in square brackets");
     res.end('ㅎㅇㅎㅇ');
 });
 
@@ -141,5 +122,5 @@ app.post('/', function (req, res, next) {
 });
 
 const server = https.createServer(credentials, app).listen(process.env.PORT, () => {
-		console.log(`Server is up and running on port ${process.env.PORT}`)
+    console.log(`Server is up and running on port ${process.env.PORT}`)
 });

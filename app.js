@@ -6,8 +6,7 @@ const morgan = require('morgan');
 const fs = require('fs');
 
 const youtubedl = require('youtube-dl-exec');
-//const player = require('play-sound')(opts = {});
-const Sound = require('aplay');
+const mpv = require('node-mpv');
 
 const { Configuration, OpenAIApi } = require('openai');
 
@@ -38,14 +37,17 @@ function parseUrlInBracket(input) {
 	const regex = /\[(https?:\/\/[^\]]+)\]/g;
 	const matches = input.match(regex);
 
+	let urlInBracket;
 	if (matches) {
-		const urlInBracket = matches[0].slice(1, -1);
+		urlInBracket = matches[0].slice(1, -1);
 		return urlInBracket;
 	}
-	return "https://youtu.be/gyTpRWXXyfg";
+	urlInBracket = "https://youtu.be/gyTpRWXXyfg";
+	return urlInBracket;
 }
 
 const runAPI = async (prompt) => {
+
     const response = await openai.createCompletion({
         model: "text-davinci-003",
         prompt: prompt,
@@ -55,22 +57,36 @@ const runAPI = async (prompt) => {
 
     // response.data.choices[0].text를 파싱해야함
 	const urlInBracket = parseUrlInBracket(response.data.choices[0].text);
-    console.log('original text: ', response.data.choices[0].text);
-    console.log('parsing url: ', urlInBracket);
-    const output = await youtubedl(urlInBracket, {
-	    format: 'ba',
-	    quiet: true,
-	    output: './home/b.mp3'
-    });
-	console.log('download ended', output);
+    console.log('original text:', response.data.choices[0].text);
+    console.log('parsing url:', urlInBracket);
 
-    //player.play('./home/b.mp3', (err) => {
-    //    if (err && !err.killed) throw err;
-    //});
-	const music = new Sound();
-	music.play('./home/b.mp3');
-	music.on('complete', function () {
-			console.log('Donw with playback!');
+	try {
+	    const output = await youtubedl(urlInBracket, {
+		    format: 'ba',
+			'force-overwrites': true,
+		    //quiet: false,
+		    output: process.env.PLAY_FILE_PATH,
+	    });
+		const playFilePath = process.env.PLAY_FILE_PATH;
+		console.log('download ended', output);
+	} catch (err) {
+		const playFilePath = process.env.DEFAULT_PLAY_FILE_PATH;
+		console.error(err);
+	}
+
+	const mpvPlayer = new mpv({
+		"audio_only": true,
+	});
+	try {
+		console.log('play music');
+		mpvPlayer.load(process.env.PLAY_FILE_PATH);
+	} catch (err) {
+		mpvPlayer.load(process.env.DEFAULT_PLAY_FILE_PATH);
+		console.error(err);
+	}
+	mpvPlayer.volume(30);
+	mpvPlayer.on('stopped', function() {
+		console.log('done with playback');
 	});
 }
 

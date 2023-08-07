@@ -3,6 +3,11 @@
 > ```sh
 > When you press the button when you wake up or leave work (recognize through door sensor in the late evening), recommend a song that fits the mood at that time and play it
 > ```
+## ToDo
+- when youtube-dl can't download, throw error. so we need to add try-except clause
+- whenever we must can stop music. so we need to add stop eventlistener (ref. node-mpv from npm-page)
+- we add volume slide (node-mpv have properties (control sound while play music)
+- etc. (exception)
 ## How it works
 ### 1. Event Listen from Smart Things Cloud
 // 온도, 습도 가져오고, 버튼 누르거나 도어센서 인식했을때 실행도ㅁ게 할거임

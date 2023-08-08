@@ -4,8 +4,6 @@
 > When you press the button when you wake up or leave work (recognize through door sensor in the late evening), recommend a song that fits the mood at that time and play it
 > ```
 ## ToDo
-- when youtube-dl can't download, throw error. so we need to add try-except clause
-- whenever we must can stop music. so we need to add stop eventlistener (ref. node-mpv from npm-page)
 - we add volume slide (node-mpv have properties (control sound while play music)
 - etc. (exception)
 

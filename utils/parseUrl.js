@@ -8,6 +8,10 @@ function parseUrlInBracket(input) {
 		return urlInBracket;
 	}
 	urlInBracket = "https://youtu.be/gyTpRWXXyfg";
+    
+    console.log('original text:', input);
+    console.log('parsing url:', urlInBracket);
+ 
 	return urlInBracket;
 }
 

@@ -4,9 +4,9 @@ const SmartApp = require('@smartthings/smartapp');
 const dotenv = require('dotenv').config();
 const morgan = require('morgan');
 const fs = require('fs');
-const playMusic = require('./play');
-const parseUrlInBracket = require('./parseUrl');
-const youtubedl = require('youtube-dl-exec');
+const musicPlayer = require('./utils/musicPlayer');
+const parseUrlInBracket = require('./utils/parseUrl');
+const downloadMusic = require('./utils/downloader');
 
 const { Configuration, OpenAIApi } = require('openai');
 
@@ -29,62 +29,17 @@ const configuration = new Configuration({
 
 const openai = new OpenAIApi(configuration);
 
-const getModelLists = async () => {
-    const response = await openai.listModels();
-    const models = response.data.data;
-    for (let modelIdx = 0; modelIdx.length; ++modelIdx) {
-        console.log(modelIdx + ':' + models[i].id);
-    }
-}
-
-var mpvPlayer;
 const runAPI = async (prompt) => {
 
     const response = await openai.createCompletion({
-        model: "text-davinci-003",
+        model: process.env.OPENAI_MODEL,
         prompt: prompt,
         max_tokens: 100,
         temperature: 0.6,
     });
 
-	const urlInBracket = parseUrlInBracket(response.data.choices[0].text);
-    console.log('original text:', response.data.choices[0].text);
-    console.log('parsing url:', urlInBracket);
-
-    let playFilePath = process.env.DEFAULT_PLAY_FILE_PATH;
-	try {
-        // download over 10s throw error
-	    const output = await youtubedl(urlInBracket, {
-		    format: 'ba',
-			'force-overwrites': true,
-		    //quiet: false,
-		    output: process.env.PLAY_FILE_PATH,
-	    });
-		playFilePath = process.env.PLAY_FILE_PATH;
-		console.log('download ended', output);
-	} catch (err) {
-		playFilePath = process.env.DEFAULT_PLAY_FILE_PATH;
-        console.log('not available youtube link');
-	}
-
-    mpvPlayer = playMusic(playFilePath);
-}
-
-function controlMusic(mode, volume) {
-    if (mode === 'stop') {
-        try {
-            mpvPlayer.stop();
-        } catch (err) {
-            console.error(err);
-        }
-    }
-    else if (mode === 'volume') {
-        try {
-            mpvPlayer.volume(volume);
-        } catch (err) {
-            console.error(err);
-        }
-    }
+	const musicPath = await downloadMusic(parseUrlInBracket(response.data.choices[0].text));  
+    musicPlayer.playMusic(musicPath);
 }
 
 /* Define the SmartApp */
@@ -120,17 +75,18 @@ const smartapp = new SmartApp()
         if (event.value === 'on') {
             await runAPI();
             console.log('@@@@@@@@ volume:', context.configNumberValue('volume'));
-            controlMusic('volume', context.configNumberValue('volume'));
+            musicPlayer.controlMusic('volume', context.configNumberValue('volume'));
             //await context.api.devices.sendCommands(context.config.lights, 'switch', 'off');
         }
         if (event.value === 'off') {
             console.log('@@@@@@@@ volume:', context.configNumberValue('volume'));
-            controlMusic('stop', 0);
+            musicPlayer.controlMusic('stop', 0);
         }
     });
 
 app.get('/', (req, res) => {
     console.log('접속 요청 + 1');
+    res.send('asdfasdfasdf');
     //runAPI("please give me the hot music youtube url");
 	//runAPI("please give me the popular music url from youtube in square brackets");
 });

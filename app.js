@@ -29,7 +29,7 @@ const configuration = new Configuration({
 
 const openai = new OpenAIApi(configuration);
 
-const runAPI = async (prompt) => {
+async function runMusicProc(prompt) {
 
     const response = await openai.createCompletion({
         model: process.env.OPENAI_MODEL,
@@ -56,12 +56,25 @@ const smartapp = new SmartApp()
     
         page.section('controlVolume', section => {
             section.numberSetting('volume')
+                .defaultValue(40)
                 .min(0)
                 .max(100)
                 .step(1)
-                .defaultValue(40)
-                .style('SLIDER')
                 .submitOnChange(true)
+        });
+        page.section('thermometer', section => {
+            section
+                .deviceSetting('thermometer')
+                .capabilities(['temperatureMeasurement', 'relativeHumidityMeasurement'])
+                .permissions('rx')
+                .multiple(true);
+        });
+        page.section('hygrometer', section => {
+            section
+                .deviceSetting('hygrometer')
+                .capabilities(['temperatureMeasurement', 'relativeHumidityMeasurement'])
+                .permissions('rx')
+                .multiple(true);
         });
     })
     // Called for both INSTALLED and UPDATED lifecycle events if there is no separate installed() handler
@@ -69,26 +82,40 @@ const smartapp = new SmartApp()
         await context.api.subscriptions.delete() // clear any existing configuration
         //await context.api.subscriptions.subscribeToDevices(context.config.contactSensor, 'contactSensor', 'contact', 'myDeviceEventHandler');
         await context.api.subscriptions.subscribeToDevices(context.config.lights, 'switch', 'switch', 'virtualSwitchEventHandler');
+        // capabilities, attribute
+        await context.api.subscriptions.subscribeToDevices(context.config.thermometer, 'temperatureMeasurement', 'temperature', 'thermometerEventHandler');
+        await context.api.subscriptions.subscribeToDevices(context.config.hygrometer, 'relativeHumidityMeasurement', 'humidity', 'hygrometerEventHandler');
+
+        // control volume at updated lifecycle
+        console.log('@@@@@@@@ volume:', context.configNumberValue('volume'));
+        musicPlayer.controlMusic('volume', context.configNumberValue('volume'));
+
     })
     .subscribedEventHandler('virtualSwitchEventHandler', async (context, event) => {
         const value = event.value === 'on' ? 'on' : 'off';
         if (event.value === 'on') {
-            await runAPI();
-            console.log('@@@@@@@@ volume:', context.configNumberValue('volume'));
-            musicPlayer.controlMusic('volume', context.configNumberValue('volume'));
+            await runMusicProc();
+            // 기기 컨트롤 부분을 따로 만들어서 노래가 끝나는 event 수신하면 기기도 꺼버리기
             //await context.api.devices.sendCommands(context.config.lights, 'switch', 'off');
         }
         if (event.value === 'off') {
-            console.log('@@@@@@@@ volume:', context.configNumberValue('volume'));
             musicPlayer.controlMusic('stop', 0);
         }
+    })
+    .subscribedEventHandler('thermometerEventHandler', async (context, event) => {
+        var temperature = 25;    // default temperature
+        humidity = event.value;
+        console.log('!@#!@#!@#!@#!@#온도변화 감지', event.value);
+    })
+    .subscribedEventHandler('hygrometerEventHandler', async (context, event) => {
+        var humidity = 60;       // default humidity
+        humidity = event.value;
+        console.log('!@#!@#!@#!@#!@#습도변화 감지', event.value);
     });
 
 app.get('/', (req, res) => {
     console.log('접속 요청 + 1');
     res.send('asdfasdfasdf');
-    //runAPI("please give me the hot music youtube url");
-	//runAPI("please give me the popular music url from youtube in square brackets");
 });
 
 /* Handle POST requests */

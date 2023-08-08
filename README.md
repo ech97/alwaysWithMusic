@@ -5,9 +5,11 @@
 > ```
 ## ToDo
 - we add volume slide (node-mpv have properties (control sound while play music)
-- etc. (exception)
-
-- use youtube-dl skip intro feature
+- pade-out
+- volume
+- url만 받아서 틀어주는 기능도 만들면 좋을듯
+- 온도계로부터 데이터만 받아주면 됨
+- 커맨드로 노래 끝나면 꺼버리기
 ## Need to fix
 - only we can play music when connect with ssh -X || when execute mpv with DISPLAY=:0 mpv [audio.mp3]
 ## How it works

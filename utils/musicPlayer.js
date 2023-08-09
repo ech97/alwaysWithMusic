@@ -9,6 +9,7 @@ function playMusic(playFilePath) {
     });
 
     try {
+        console.log('now play music');
         mpvPlayer.load(playFilePath);
         mpvPlayer.volume(40);
         mpvPlayer.on('stopped', () => {

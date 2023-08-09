@@ -5,7 +5,7 @@ const dotenv = require('dotenv').config();
 const morgan = require('morgan');
 const fs = require('fs');
 const musicPlayer = require('./utils/musicPlayer');
-const parseUrlInBracket = require('./utils/parseUrl');
+const getYoutubeUrl = require('./utils/titleToYoutubeUrl');
 const downloadMusic = require('./utils/downloader');
 
 const { Configuration, OpenAIApi } = require('openai');
@@ -37,7 +37,9 @@ async function runMusicProc(prompt) {
         temperature: 0.3,
     });
 
-	const musicPath = await downloadMusic(parseUrlInBracket(response.data.choices[0].text));  
+    const musicUrl = await getYoutubeUrl(response.data.choices[0].text);  
+	const musicPath = await downloadMusic(musicUrl);
+
     musicPlayer.playMusic(musicPath);
 }
 
@@ -96,7 +98,10 @@ const smartapp = new SmartApp()
     .subscribedEventHandler('virtualSwitchEventHandler', async (context, event) => {
         const value = event.value === 'on' ? 'on' : 'off';
         if (event.value === 'on') {
-            await runMusicProc(`give me a music title and find that youtube link fits at ${temperature} degrees celcius and ${humidity} percent humidity`);
+            await runMusicProc(`give me a music title fits at ${temperature} degrees celcius and ${humidity} percent humidity in square brackets`);
+            console.log('setting volume:', context.configNumberValue('volume'));
+            musicPlayer.controlMusic('volume', context.configNumberValue('volume'));
+
             // 기기 컨트롤 부분을 따로 만들어서 노래가 끝나는 event 수신하면 기기도 꺼버리기
             //await context.api.devices.sendCommands(context.config.lights, 'switch', 'off');
         }

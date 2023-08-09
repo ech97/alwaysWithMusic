@@ -4,6 +4,7 @@ const dotenv = require('dotenv').config();
 async function downloadMusic(downloadUrl) {
     try {
         // download over 10s throw error
+        console.log('start download:', downloadUrl);
         const output = await youtubedl(downloadUrl, {
             format: 'ba',
             'force-overwrites': true,
@@ -11,7 +12,7 @@ async function downloadMusic(downloadUrl) {
             'quiet': false,
             'output': process.env.PLAY_FILE_PATH,
         });
-        console.log('successfully downloaded.', output);
+        console.log('success download', output);
         return process.env.PLAY_FILE_PATH;
     } catch (err) {
         console.log('not available youtube link');

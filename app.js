@@ -30,18 +30,20 @@ const configuration = new Configuration({
 const openai = new OpenAIApi(configuration);
 
 async function runMusicProc(prompt) {
-
     const response = await openai.createCompletion({
         model: process.env.OPENAI_MODEL,
         prompt: prompt,
-        max_tokens: 100,
-        temperature: 0.6,
+        max_tokens: 200,
+        temperature: 0.3,
     });
 
 	const musicPath = await downloadMusic(parseUrlInBracket(response.data.choices[0].text));  
     musicPlayer.playMusic(musicPath);
 }
 
+// default temperature and humidity
+var temperature = 25.0;
+var humidity = 60;
 /* Define the SmartApp */
 const smartapp = new SmartApp()
     .enableEventLogging(0) // logs all lifecycle event requests and responses as pretty-printed JSON. Omit in production
@@ -94,7 +96,7 @@ const smartapp = new SmartApp()
     .subscribedEventHandler('virtualSwitchEventHandler', async (context, event) => {
         const value = event.value === 'on' ? 'on' : 'off';
         if (event.value === 'on') {
-            await runMusicProc();
+            await runMusicProc(`give me a music title and find that youtube link fits at ${temperature} degrees celcius and ${humidity} percent humidity`);
             // 기기 컨트롤 부분을 따로 만들어서 노래가 끝나는 event 수신하면 기기도 꺼버리기
             //await context.api.devices.sendCommands(context.config.lights, 'switch', 'off');
         }
@@ -103,12 +105,10 @@ const smartapp = new SmartApp()
         }
     })
     .subscribedEventHandler('thermometerEventHandler', async (context, event) => {
-        var temperature = 25;    // default temperature
         humidity = event.value;
         console.log('!@#!@#!@#!@#!@#온도변화 감지', event.value);
     })
     .subscribedEventHandler('hygrometerEventHandler', async (context, event) => {
-        var humidity = 60;       // default humidity
         humidity = event.value;
         console.log('!@#!@#!@#!@#!@#습도변화 감지', event.value);
     });

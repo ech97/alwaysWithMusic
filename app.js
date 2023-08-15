@@ -43,6 +43,13 @@ async function runMusicProc(prompt) {
     musicPlayer.playMusic(musicPath);
 }
 
+async function switchOffAfterPlay(context) {
+    if (musicPlayer.getIsPlayMusic() == false) {
+        // 기기 컨트롤 부분을 따로 만들어서 노래가 끝나는 event 수신하면 기기도 꺼버리기
+        await context.api.devices.sendCommands(context.config.lights, 'switch', 'off');
+    }
+}
+
 // default temperature and humidity
 var temperature = 25.0;
 var humidity = 60;
@@ -91,7 +98,6 @@ const smartapp = new SmartApp()
         await context.api.subscriptions.subscribeToDevices(context.config.hygrometer, 'relativeHumidityMeasurement', 'humidity', 'hygrometerEventHandler');
 
         // control volume at updated lifecycle
-        console.log('@@@@@@@@ volume:', context.configNumberValue('volume'));
         musicPlayer.controlMusic('volume', context.configNumberValue('volume'));
 
     })
@@ -99,11 +105,10 @@ const smartapp = new SmartApp()
         const value = event.value === 'on' ? 'on' : 'off';
         if (event.value === 'on') {
             await runMusicProc(`give me a music title fits at ${temperature} degrees celcius and ${humidity} percent humidity in square brackets`);
-            console.log('setting volume:', context.configNumberValue('volume'));
             musicPlayer.controlMusic('volume', context.configNumberValue('volume'));
 
-            // 기기 컨트롤 부분을 따로 만들어서 노래가 끝나는 event 수신하면 기기도 꺼버리기
-            //await context.api.devices.sendCommands(context.config.lights, 'switch', 'off');
+            // setTimeout으로 감싸기
+            await switchOffAfterPlay(context);
         }
         if (event.value === 'off') {
             musicPlayer.controlMusic('stop', 0);
@@ -111,16 +116,78 @@ const smartapp = new SmartApp()
     })
     .subscribedEventHandler('thermometerEventHandler', async (context, event) => {
         humidity = event.value;
-        console.log('!@#!@#!@#!@#!@#온도변화 감지', event.value);
+        console.log('receive thermometer event: [temperature]', event.value);
     })
     .subscribedEventHandler('hygrometerEventHandler', async (context, event) => {
         humidity = event.value;
-        console.log('!@#!@#!@#!@#!@#습도변화 감지', event.value);
+        console.log('receive hygrometer event: [humidity]', event.value);
     });
 
+const cookieParser = require('cookie-parser');
+const path = require('path');
+const session = require('express-session');
+const nunjucks = require('nunjucks');
+const passport = require('passport');
+
+const pageRouter = require('./routes/page');
+const authRouter = require('./routes/auth');
+const userRouter = require('./routes/user');
+const { sequelize } = require('./models');
+const passportConfig = require('./passport');
+
+passportConfig();
+
+app.set('view engine', 'html');
+nunjucks.configure('views', {
+    express: app,
+    watch: true,
+});
+
+sequelize.sync({ force: false })
+    .then(() => {
+        console.log('데이터베이스 연결 성공');
+    })
+    .catch((err) => {
+        console.error(err);
+    });
+
+app.use(express.static(path.join(__dirname, 'public')));
+app.use('/img', express.static(path.join(__dirname, 'uploads')));
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser(process.env.COOKIE_SECRET));
+app.use(session({
+    resave: false,
+    saveUninitialized: false,
+    secret: process.env.COOKIE_SECRET,
+    cookie: {
+        httpOnly: true,
+        secrue: false,
+    },
+}));
+app.use(passport.initialize());
+app.use(passport.session());
+
+app.use('/', pageRouter);
+app.use('/auth', authRouter);
+app.use('/user', userRouter);
+
+app.use((req, res, next) => {
+    const error = new Error(`${req.method} ${req.url} 라우터가 없습니다.`);
+    error.status= 404;
+    next(error);
+});
+
+app.use((err, req, res, next) => {
+    res.locals.message = err.message;
+    res.locals.error = process.env.NODE_ENV !== 'production' ? err : {};
+    res.status(err.status || 500);
+    res.render('error');
+});
+
 app.get('/', (req, res) => {
-    console.log('접속 요청 + 1');
-    res.send('asdfasdfasdf');
+    console.log('connection + 1');
+    res.send('alwaysWithMusic');
 });
 
 /* Handle POST requests */

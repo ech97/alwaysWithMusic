@@ -2,9 +2,10 @@ const youtubeSearchWithoutApiKey = require("youtube-search-without-api-key");
 
 function filterOverDuration(rawDuration) {
     const MAX_DURATION_MIN = 5;
+    const MINUTE_IDX = 0;
     // @ can't filter hours
-    const [minutes, seconds] = rawDuration.split(":").map(Number);
-    if (minutes > MAX_DURATION_MIN) {
+    const parseDuration = rawDuration.split(":").map(Number);
+    if (parseDuration.length > 2 || parseDuration[MINUTE_IDX] > MAX_DURATION_MIN) {
         return true;
     }
     return false;
@@ -17,6 +18,7 @@ function parseTitleInBracket(input) {
     let titleInBracket = 'total praise';
     if (matches) {
     	titleInBracket = matches[0].slice(1, -1);
+        titleInBracket += " music";
     }
     
     console.log('original text:', input);
@@ -29,10 +31,9 @@ async function getYoutubeUrl(titleInBracket) {
     const searchTitle = parseTitleInBracket(titleInBracket);
     const musicUrls = await youtubeSearchWithoutApiKey.search(searchTitle);
 
-    let musicUrl;
     if (musicUrls) {
         for (let musicIdx = 0; musicIdx < musicUrls.length; musicIdx++) {
-            musicUrl = musicUrls[musicIdx];
+            const musicUrl = musicUrls[musicIdx];
             if (filterOverDuration(musicUrl.duration_raw) == true) {
                 continue;
             }
@@ -40,7 +41,7 @@ async function getYoutubeUrl(titleInBracket) {
             return musicUrl.url;
         }
     }
-    return musicUrl;
+    return undefined;
 }
 
 module.exports = getYoutubeUrl;
